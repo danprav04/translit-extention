@@ -120,13 +120,16 @@
 }
 
 .ai-translit-btn {
-  all: initial;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 6px 12px;
   border-radius: 6px;
+  border: none;
+  outline: none;
+  background: transparent;
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;

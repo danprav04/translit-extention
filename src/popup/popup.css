@@ -130,19 +130,28 @@ body {
 }
 
 .btn {
-  all: initial;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 10px 14px;
   border-radius: 8px;
+  border: none;
+  outline: none;
+  background: transparent;
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   width: 100%;
+}
+
+.playground-buttons {
+  display: flex;
+  width: 100%;
+  margin-top: 2px;
 }
 
 .btn-action {
