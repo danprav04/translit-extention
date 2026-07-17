@@ -76,7 +76,7 @@ async function handleTranslitRequest(inputText) {
   // Try Primary Model
   try {
     console.log(`[Background] Attempting translit with Primary Model: ${primaryModel}`);
-    const result = await callModelAPI(config.apiKey, primaryModel, systemPrompt, inputText);
+    const result = await callModelAPI(config.apiKey, primaryModel, systemPrompt, inputText, 5000);
     return {
       success: true,
       restoredText: result,
@@ -88,7 +88,7 @@ async function handleTranslitRequest(inputText) {
 
     // Try Fallback Model
     try {
-      const result = await callModelAPI(config.apiKey, fallbackModel, systemPrompt, inputText);
+      const result = await callModelAPI(config.apiKey, fallbackModel, systemPrompt, inputText, 8000);
       return {
         success: true,
         restoredText: result,
@@ -102,9 +102,9 @@ async function handleTranslitRequest(inputText) {
 }
 
 /**
- * Executes HTTP POST request to Google's Generative Language API endpoint
+ * Executes HTTP POST request to Google's Generative Language API endpoint with strict timeout
  */
-async function callModelAPI(apiKey, modelId, systemPrompt, inputText) {
+async function callModelAPI(apiKey, modelId, systemPrompt, inputText, timeoutMs = 6000) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
 
   const payload = {
@@ -123,34 +123,47 @@ async function callModelAPI(apiKey, modelId, systemPrompt, inputText) {
     }
   };
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    let errorDetail = response.statusText;
-    try {
-      const errorJson = await response.json();
-      if (errorJson.error && errorJson.error.message) {
-        errorDetail = errorJson.error.message;
-      }
-    } catch (_) {}
-    throw new Error(`API Error (${response.status}): ${errorDetail}`);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      let errorDetail = response.statusText;
+      try {
+        const errorJson = await response.json();
+        if (errorJson.error && errorJson.error.message) {
+          errorDetail = errorJson.error.message;
+        }
+      } catch (_) {}
+      throw new Error(`API Error (${response.status}): ${errorDetail}`);
+    }
+
+    const data = await response.json();
+    if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content || !data.candidates[0].content.parts) {
+      throw new Error("Received empty response from AI model.");
+    }
+
+    const resultText = data.candidates[0].content.parts
+      .map(part => part.text || "")
+      .join("")
+      .trim();
+
+    return resultText;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs / 1000}s (${modelId} did not respond in time)`);
+    }
+    throw err;
   }
-
-  const data = await response.json();
-  if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content || !data.candidates[0].content.parts) {
-    throw new Error("Received empty response from AI model.");
-  }
-
-  const resultText = data.candidates[0].content.parts
-    .map(part => part.text || "")
-    .join("")
-    .trim();
-
-  return resultText;
 }

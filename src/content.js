@@ -72,8 +72,20 @@ async function performTranslitSelection() {
   // Show loading badge above selection
   showLoadingBadge(rect, "✨ Identifying language & restoring...");
 
+  let isCompleted = false;
+  const loadingTimeout = setTimeout(() => {
+    if (!isCompleted) {
+      isCompleted = true;
+      removeActiveContainer();
+      showFloatingToast("⏱️ Request timed out after 15s. Both primary and fallback AI models were unresponsive.", rect, 4500);
+    }
+  }, 15000);
+
   // Send request to background service worker
   chrome.runtime.sendMessage({ action: "CALL_GEMINI_TRANSLIT", text: selectionInfo.text }, (response) => {
+    if (isCompleted) return;
+    isCompleted = true;
+    clearTimeout(loadingTimeout);
     removeActiveContainer();
 
     if (chrome.runtime.lastError) {
