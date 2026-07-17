@@ -1,0 +1,19 @@
+{
+  "name": "translit-extention",
+  "version": "1.0.0",
+  "description": "AI-powered Chrome extension that scans selected text, identifies the language or keyboard layout mistakes, and replaces it with the original language script using Gemini 3.1 Flash Lite and Gemma 4 31B.",
+  "scripts": {
+    "sync": "node sync-env.js",
+    "build": "node sync-env.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "transliteration",
+    "gemini",
+    "gemma",
+    "ai",
+    "keyboard-layout"
+  ],
+  "author": "danprav04",
+  "license": "MIT"
+}

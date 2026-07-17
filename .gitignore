@@ -1,0 +1,13 @@
+# Local Environment variables
+.env
+.env.*
+!.env.example
+
+# Extension local auto-generated config from .env
+src/config.local.js
+
+# Dependencies & build
+node_modules/
+dist/
+*.log
+.DS_Store

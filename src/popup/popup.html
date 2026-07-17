@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Translit Popup</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="header">
+      <div class="logo">
+        <span class="icon">✨</span>
+        <div class="titles">
+          <h1>AI Translit</h1>
+          <p>Native Script & Layout Restorer</p>
+        </div>
+      </div>
+      <button id="open-options" class="icon-btn" title="Extension Settings">⚙️</button>
+    </header>
+
+    <div class="card status-card">
+      <div class="status-row">
+        <span class="label">Primary Model:</span>
+        <span class="value badge-primary" id="model-primary-display">Gemini 3.1 Flash Lite</span>
+      </div>
+      <div class="status-row">
+        <span class="label">Fallback Model:</span>
+        <span class="value badge-secondary" id="model-fallback-display">Gemma 4 31B</span>
+      </div>
+      <div class="status-row">
+        <span class="label">Shortcut:</span>
+        <span class="value shortcut-badge" id="shortcut-display">Alt + Shift + T</span>
+      </div>
+    </div>
+
+    <div class="actions-group">
+      <button id="trigger-tab-translit" class="btn btn-action">
+        <span>🔄 Restore Selected Text on Page</span>
+      </button>
+    </div>
+
+    <div class="card playground-card">
+      <div class="card-header">
+        <h2>⚡ Quick Scratchpad</h2>
+        <span class="hint">Try romanized or wrong-layout text</span>
+      </div>
+      <textarea id="quick-input" placeholder="e.g. privet kak dela, ghivet, shalam, arigato..."></textarea>
+      <div class="playground-buttons">
+        <button id="quick-translate-btn" class="btn btn-primary">Restore Script</button>
+      </div>
+      
+      <div id="quick-result-box" class="result-box hidden">
+        <div class="result-header">
+          <span>Result</span>
+          <button id="quick-copy-btn" class="btn-xs">Copy</button>
+        </div>
+        <div id="quick-output" class="result-content"></div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <a href="#" id="link-shortcuts">Customize Keyboard Shortcuts</a>
+    </footer>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Translit Extension - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <header class="top-bar">
+      <div class="logo-area">
+        <span class="logo-icon">✨</span>
+        <div class="header-titles">
+          <h1>AI Translit Extension</h1>
+          <p>Multi-Language & Keyboard Layout Restoration Configuration</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="btn-reset" class="btn btn-outline">Restore Defaults</button>
+        <button id="btn-save" class="btn btn-primary">Save Changes</button>
+      </div>
+    </header>
+
+    <main class="settings-grid">
+      <!-- API Key & Credentials -->
+      <section class="config-card">
+        <div class="card-title">
+          <h2>🔑 Gemini API Credentials</h2>
+          <span class="tag tag-secure">Stored locally & gitignored via .env</span>
+        </div>
+        <p class="desc">Your Google Gemini API Key powers the transliteration and layout-restoration AI. By default, it loads from your root <code>.env</code> file.</p>
+        
+        <div class="form-group">
+          <label for="input-api-key">API Key</label>
+          <div class="input-with-button">
+            <input type="password" id="input-api-key" placeholder="AQ.Ab8RN... or AIzaSy...">
+            <button id="toggle-key-visibility" class="btn-icon" type="button" title="Show/Hide">👁️</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Models & Fallback -->
+      <section class="config-card">
+        <div class="card-title">
+          <h2>🤖 AI Models & Fallback Strategy</h2>
+          <span class="tag tag-info">Automatic Failover</span>
+        </div>
+        <p class="desc">Specify the primary model (`Gemini 3.1 Flash Lite`) for high-speed low-latency translation, and fallback (`Gemma 4 31B`) if rate limits occur.</p>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="input-primary-model">Primary Model ID</label>
+            <input type="text" id="input-primary-model" value="gemini-3.1-flash-lite-preview" placeholder="gemini-3.1-flash-lite-preview">
+            <span class="help-text">Recommended: <code>gemini-3.1-flash-lite-preview</code> or <code>gemini-3.1-flash-lite</code></span>
+          </div>
+          <div class="form-group flex-1">
+            <label for="input-fallback-model">Fallback Model ID</label>
+            <input type="text" id="input-fallback-model" value="gemma-4-31b-it" placeholder="gemma-4-31b-it">
+            <span class="help-text">Recommended: <code>gemma-4-31b-it</code> or <code>gemma-4-31b</code></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Keyboard Shortcuts -->
+      <section class="config-card">
+        <div class="card-title">
+          <h2>⌨️ Keybinds & Shortcuts</h2>
+        </div>
+        <p class="desc">Configure how you trigger text restoration on selected text anywhere across the web.</p>
+
+        <div class="shortcut-container">
+          <div class="shortcut-box">
+            <div class="shortcut-info">
+              <h3>Native Chrome Command</h3>
+              <p>Works reliably across all browser tabs. Current shortcut: <strong id="current-chrome-cmd">Alt + Shift + T</strong></p>
+            </div>
+            <button id="btn-open-chrome-shortcuts" class="btn btn-secondary">Open Chrome Shortcut Manager</button>
+          </div>
+
+          <div class="form-group mt-4">
+            <label for="input-custom-shortcut">Custom In-Page Hotkey (Optional Override)</label>
+            <input type="text" id="input-custom-shortcut" placeholder="e.g., Alt+T or Ctrl+Shift+Y">
+            <span class="help-text">If set, our content script will listen directly for this key combination on any webpage without needing Chrome shortcut manager. Leave empty to use only the native command above.</span>
+          </div>
+
+          <div class="checkbox-group mt-4">
+            <label class="checkbox-label">
+              <input type="checkbox" id="check-auto-replace" checked>
+              <div class="checkbox-texts">
+                <strong>Auto-Replace Text Inside Input / Textarea / Rich Editor</strong>
+                <span>If checked, pressing the hotkey while text is selected inside a typing box (`&lt;input&gt;`, `&lt;textarea&gt;`, Gmail, Slack, WhatsApp) immediately replaces the text in place preserving native `Ctrl+Z` Undo history.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Prompt Fine-Tuning -->
+      <section class="config-card">
+        <div class="card-title">
+          <h2>🧠 Transliteration System Prompt</h2>
+          <span class="tag tag-advanced">Fine-Tuning</span>
+        </div>
+        <p class="desc">Customize the exact instructions given to Gemini for detecting mixed languages, layout mistakes, and transliterated words.</p>
+
+        <div class="form-group">
+          <textarea id="input-system-prompt" rows="8"></textarea>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast-notify" class="toast hidden">✅ Settings saved successfully!</div>
+  </div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>
