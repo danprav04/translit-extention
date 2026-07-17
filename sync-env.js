@@ -32,12 +32,28 @@ if (!fs.existsSync(targetDir)) {
   fs.mkdirSync(targetDir, { recursive: true });
 }
 
+const configPath = path.join(targetDir, 'config.js');
 const envVars = parseEnv(envPath);
 
-const outputContent = `// Auto-generated from root .env by sync-env.js. DO NOT COMMIT (gitignored).
-export const LOCAL_ENV = ${JSON.stringify(envVars, null, 2)};
-globalThis.LOCAL_ENV = LOCAL_ENV;
-`;
+if (fs.existsSync(configPath)) {
+  let configContent = fs.readFileSync(configPath, 'utf8');
+  if (envVars.GEMINI_API_KEY) {
+    configContent = configContent.replace(/apiKey:\s*["'][^"']*["']/, `apiKey: "${envVars.GEMINI_API_KEY}"`);
+  }
+  if (envVars.PRIMARY_MODEL) {
+    configContent = configContent.replace(/primaryModel:\s*["'][^"']*["']/, `primaryModel: "${envVars.PRIMARY_MODEL}"`);
+  }
+  if (envVars.FALLBACK_MODEL) {
+    configContent = configContent.replace(/fallbackModel:\s*["'][^"']*["']/, `fallbackModel: "${envVars.FALLBACK_MODEL}"`);
+  }
+  fs.writeFileSync(configPath, configContent, 'utf8');
+  console.log(`[sync-env] Successfully synced .env values into ${configPath}`);
+} else {
+  console.warn(`[sync-env] Warning: ${configPath} not found.`);
+}
 
-fs.writeFileSync(targetPath, outputContent, 'utf8');
-console.log(`[sync-env] Successfully synced .env to ${targetPath}`);
+// Clean up old gitignored config.local.js if it exists so there are no orphan files
+const oldLocalPath = path.join(targetDir, 'config.local.js');
+if (fs.existsSync(oldLocalPath)) {
+  fs.unlinkSync(oldLocalPath);
+}

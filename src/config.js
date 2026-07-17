@@ -1,10 +1,9 @@
-// Configuration management combining local .env defaults with chrome.storage user settings.
-import { LOCAL_ENV } from './config.local.js';
+// Configuration management combining local defaults with chrome.storage user settings.
 
 export const DEFAULT_CONFIG = {
-  apiKey: LOCAL_ENV.GEMINI_API_KEY || "",
-  primaryModel: LOCAL_ENV.PRIMARY_MODEL || "gemini-3.1-flash-lite-preview",
-  fallbackModel: LOCAL_ENV.FALLBACK_MODEL || "gemma-4-31b-it",
+  apiKey: "", // Configure via Extension Options or local .env -> npm run sync
+  primaryModel: "gemini-3.1-flash-lite-preview",
+  fallbackModel: "gemma-4-31b-it",
   systemPrompt: `You are an expert multi-language transliteration and keyboard-layout restoration assistant.
 Your task is to scan the user's input text, identify any language mistakes, transliteration/romanization (e.g. Russian/Hebrew/Greek/Hindi/Japanese written in Latin script like 'privet kak dela' or 'shalam'), or wrong keyboard layout mistakes (e.g. typing English characters on a Russian/Hebrew/Greek layout like 'ghivet' instead of 'привет' or 'u,uho' instead of 'שלום', or vice versa), and output the corrected, restored text in its true original native language script.
 
