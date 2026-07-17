@@ -114,12 +114,12 @@ async function callModelAPI(apiKey, modelId, systemPrompt, inputText, timeoutMs 
     contents: [
       {
         role: "user",
-        parts: [{ text: `Restore and transliterate the following text to its original native language script:\n\n${inputText}` }]
+        parts: [{ text: `Restore and transliterate the following text to its original native language script.\nYou MUST enclose ONLY the final restored text inside <restored></restored> tags without any analysis, explanation, or notes:\n\n"${inputText}"\n\nOutput inside <restored></restored>:` }]
       }
     ],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 4096
+      maxOutputTokens: 2048
     }
   };
 
@@ -158,7 +158,7 @@ async function callModelAPI(apiKey, modelId, systemPrompt, inputText, timeoutMs 
       .join("")
       .trim();
 
-    return resultText;
+    return cleanModelOutput(resultText, inputText);
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
@@ -166,4 +166,85 @@ async function callModelAPI(apiKey, modelId, systemPrompt, inputText, timeoutMs 
     }
     throw err;
   }
+}
+
+/**
+ * Sanitizes and extracts the exact restored phrase from any model output (Gemma/Gemini),
+ * stripping away chain-of-thought analysis, bullet points, rule repetitions, and tags.
+ */
+function cleanModelOutput(rawText, originalInput) {
+  if (!rawText) return "";
+  let text = rawText.trim();
+
+  // 1. Check for valid single-line/short <restored>...</restored> tags (taking the LAST occurrence if multiple)
+  const tagMatches = [...text.matchAll(/<restored>([^<]*?)<\/restored>/gi)];
+  if (tagMatches.length > 0) {
+    for (let i = tagMatches.length - 1; i >= 0; i--) {
+      const cand = tagMatches[i][1].trim();
+      if (cand && !cand.includes("Rule") && !cand.includes("Input") && !cand.includes("*")) {
+        return cand.replace(/^["']|["']$/g, '').trim();
+      }
+    }
+  }
+
+  // 1b. Check if <restored> was opened but never closed properly on the last lines
+  const openTagMatches = [...text.matchAll(/<restored>\s*([^<\n\r]+)/gi)];
+  if (openTagMatches.length > 0) {
+    const lastCand = openTagMatches[openTagMatches.length - 1][1].trim();
+    if (lastCand && !lastCand.includes("Rule") && !lastCand.includes("Input") && !lastCand.includes("*") && !lastCand.includes("tags")) {
+      return lastCand.replace(/^["']|["']$/g, '').trim();
+    }
+  }
+
+  // 2. Check for explicit "Result: ...", "Combined: ...", "Restored text: ..." lines
+  const resultMatches = [...text.matchAll(/(?:Combined|Result|Restored|Final Output|Corrected|Restored text|Exact phrase):\s*["']?([^"'\n\r]+)["']?/gi)];
+  if (resultMatches.length > 0) {
+    const lastResult = resultMatches[resultMatches.length - 1][1].trim();
+    if (lastResult && !lastResult.includes("Rule") && !lastResult.includes("Input") && !lastResult.includes("tags")) {
+      return lastResult.replace(/^["']|["']$/g, '').trim();
+    }
+  }
+
+  // 3. Multi-line chain of thought cleanup
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length > 1) {
+    const origWordsCount = originalInput.trim().split(/\s+/).length;
+
+    // Filter out standard chain-of-thought metadata and partial single-word breakdowns
+    const contentLines = lines.filter(l => {
+      if (/^\*?\s*(?:Input|Task|Analysis|Language|Target script|Constraint|Rule|Translation|Transliteration|Must be|Note|Explanation|Original|Combined|Result):/i.test(l)) return false;
+      if (/enclosed in|<restored>|tags?|no explanation|no notes/i.test(l)) return false;
+      // Check if this line is just a single word breakdown e.g. * "davai" -> "давай" when original input had multiple words
+      if (origWordsCount > 1) {
+        const arrowMatch = l.match(/["']?([^"'\n\r=]+)["']?\s*(?:->|=|=>)\s*["']?([^"'\n\r=]+)["']?/);
+        if (arrowMatch) {
+          const leftWords = arrowMatch[1].trim().split(/\s+/).length;
+          if (leftWords < origWordsCount) return false; // skip partial word breakdown
+        }
+      }
+      return true;
+    });
+
+    if (contentLines.length > 0) {
+      let lastLine = contentLines[contentLines.length - 1];
+      // Check if last line has full phrase arrow e.g. * "davai suda" -> "давай сюда" (Cyrillic Russian)
+      const fullArrowMatch = lastLine.match(/(?:->|=>|=)\s*["']?([^"'\n\r()]+)["']?/);
+      if (fullArrowMatch && fullArrowMatch[1].trim()) {
+        lastLine = fullArrowMatch[1].trim();
+      }
+
+      // Clean leading bullet points / asterisks / numbers
+      lastLine = lastLine.replace(/^\*+\s*/, '').replace(/^[0-9]+\.\s*/, '');
+      // If last line has duplicated text like `"давай сюда"давай сюда`
+      const dupMatch = lastLine.match(/^["']?([^"']+)["']\1$/) || lastLine.match(/^["']([^"']+)["']\s*\1$/);
+      if (dupMatch) return dupMatch[1].trim();
+      // If last line is wrapped in quotes
+      lastLine = lastLine.replace(/^["']|["']$/g, '');
+      return lastLine.trim();
+    }
+  }
+
+  // Clean quotes/tags if single line
+  text = text.replace(/<[^>]+>/g, '').replace(/^["']|["']$/g, '').trim();
+  return text;
 }
