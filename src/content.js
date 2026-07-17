@@ -77,42 +77,68 @@ async function performTranslitSelection() {
     if (!isCompleted) {
       isCompleted = true;
       removeActiveContainer();
-      showFloatingToast("⏱️ Request timed out after 15s. Both primary and fallback AI models were unresponsive.", rect, 4500);
+      showFloatingToast("⏱️ Request timed out after 25s. Both primary and fallback AI models were unresponsive.", rect, 4500);
     }
-  }, 15000);
+  }, 25000);
+
+  // Check if extension context was invalidated due to reloading the extension from chrome://extensions
+  if (typeof chrome !== 'undefined' && (!chrome.runtime || !chrome.runtime.id)) {
+    isCompleted = true;
+    clearTimeout(loadingTimeout);
+    removeActiveContainer();
+    showFloatingToast("🔄 Extension was reloaded! Please refresh this webpage (F5 / Ctrl+R) to reconnect.", rect, 4500);
+    return;
+  }
 
   // Send request to background service worker
-  chrome.runtime.sendMessage({ action: "CALL_GEMINI_TRANSLIT", text: selectionInfo.text }, (response) => {
+  try {
+    chrome.runtime.sendMessage({ action: "CALL_GEMINI_TRANSLIT", text: selectionInfo.text }, (response) => {
+      if (isCompleted) return;
+      isCompleted = true;
+      clearTimeout(loadingTimeout);
+      removeActiveContainer();
+
+      if (chrome.runtime.lastError) {
+        const errMsg = chrome.runtime.lastError.message || "";
+        if (errMsg.includes("Extension context invalidated")) {
+          showFloatingToast("🔄 Extension was reloaded! Please refresh this webpage (F5 / Ctrl+R) to reconnect.", rect, 4500);
+        } else {
+          showFloatingToast(`❌ Extension Error: ${errMsg}`, rect, 4000);
+        }
+        return;
+      }
+
+      if (!response || !response.success) {
+        showFloatingToast(`❌ AI Error: ${response ? response.error : "Unknown error"}`, rect, 4500);
+        return;
+      }
+
+      const restoredText = response.restoredText;
+      const modelUsed = response.modelUsed || "AI";
+
+      // Replace text if target is editable input / textarea / contenteditable
+      if (selectionInfo.isEditable) {
+        const replaced = replaceSelectedTextInEditable(selectionInfo.target, selectionInfo.range, restoredText);
+        if (replaced) {
+          showFloatingToast(`✅ Restored script (${formatModelName(modelUsed)})`, rect, 2200);
+          return;
+        }
+      }
+
+      // Otherwise, or if replacement failed, show popover with copy button
+      showResultPopover(rect, restoredText, modelUsed);
+    });
+  } catch (err) {
     if (isCompleted) return;
     isCompleted = true;
     clearTimeout(loadingTimeout);
     removeActiveContainer();
-
-    if (chrome.runtime.lastError) {
-      showFloatingToast(`❌ Extension Error: ${chrome.runtime.lastError.message}`, rect, 4000);
-      return;
+    if (err.message && err.message.includes("Extension context invalidated")) {
+      showFloatingToast("🔄 Extension was reloaded! Please refresh this webpage (F5 / Ctrl+R) to reconnect.", rect, 4500);
+    } else {
+      showFloatingToast(`❌ Runtime Error: ${err.message || err}`, rect, 4000);
     }
-
-    if (!response || !response.success) {
-      showFloatingToast(`❌ AI Error: ${response ? response.error : "Unknown error"}`, rect, 4500);
-      return;
-    }
-
-    const restoredText = response.restoredText;
-    const modelUsed = response.modelUsed || "AI";
-
-    // Replace text if target is editable input / textarea / contenteditable
-    if (selectionInfo.isEditable) {
-      const replaced = replaceSelectedTextInEditable(selectionInfo.target, selectionInfo.range, restoredText);
-      if (replaced) {
-        showFloatingToast(`✅ Restored script (${formatModelName(modelUsed)})`, rect, 2200);
-        return;
-      }
-    }
-
-    // Otherwise, or if replacement failed, show popover with copy button
-    showResultPopover(rect, restoredText, modelUsed);
-  });
+  }
 }
 
 /**

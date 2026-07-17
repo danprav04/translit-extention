@@ -76,7 +76,7 @@ async function handleTranslitRequest(inputText) {
   // Try Primary Model
   try {
     console.log(`[Background] Attempting translit with Primary Model: ${primaryModel}`);
-    const result = await callModelAPI(config.apiKey, primaryModel, systemPrompt, inputText, 5000);
+    const result = await callModelAPI(config.apiKey, primaryModel, systemPrompt, inputText, 10000);
     return {
       success: true,
       restoredText: result,
@@ -88,7 +88,7 @@ async function handleTranslitRequest(inputText) {
 
     // Try Fallback Model
     try {
-      const result = await callModelAPI(config.apiKey, fallbackModel, systemPrompt, inputText, 8000);
+      const result = await callModelAPI(config.apiKey, fallbackModel, systemPrompt, inputText, 12000);
       return {
         success: true,
         restoredText: result,
